@@ -58,7 +58,7 @@ def parse_size_array(X):
 
     return np.array(out).reshape(-1, 1)
 
-def group_reviews_count(val):
+def group_installs_count(val):
     very_low = ["1+", "5+", "10+", "50+", "100+"]
     low_mid = ["500+", "1,000+", "5,000+", "10,000+", "50,000+"]
     mid = ["100,000+", "500,000+"]

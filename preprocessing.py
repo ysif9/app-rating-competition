@@ -12,10 +12,6 @@ us_holidays = holidays.US(years=range(2010, 2019))
 '''
 
 
-def app_name_pipeline():
-    pass
-
-
 def category_pipeline():
     return make_pipeline(
         OneHotEncoder(handle_unknown="ignore", sparse_output=True)
@@ -30,22 +26,17 @@ def size_pipeline():
     )
 
 
-def reviews_numerical_pipeline():
+def installs_numerical_pipeline():
     return make_pipeline(
         FunctionTransformer(lambda X: X.iloc[:, 0].map(parse_number).to_frame(), ),
         box_cox_pipeline()
     )
 
-
-def installs_pipeline():
+def reviews_numerical_pipeline():
     return make_pipeline(
         FunctionTransformer(lambda X: X.iloc[:, 0].map(parse_number).to_frame(), ),
-        log_pipeline()
+        box_cox_pipeline()
     )
-
-
-def drop_na(X):
-    return X.dropna()
 
 def type_pipeline():
     return make_pipeline(
@@ -74,21 +65,21 @@ def ordinal_category_pipeline():
     )
 
 
-def review_group_pipeline():
+def installs_group_pipeline():
     return make_pipeline(
         FunctionTransformer(lambda X: X.iloc[:, 0]
-                            .map(group_reviews_count)
+                            .map(group_installs_count)
                             .to_frame(),
                             validate=False),
         category_pipeline()
     )
 
 
-def reviews_pipeline():
+def installs_pipeline():
     return FeatureUnion([
-        ("reviews_cat", ordinal_category_pipeline()),
-        ("reviews_num", reviews_numerical_pipeline()),
-        ("reviews_group", review_group_pipeline())
+        ("installs_cat", ordinal_category_pipeline()),
+        ("installs_num", installs_numerical_pipeline()),
+        ("installs_group", installs_group_pipeline())
     ])
 
 
