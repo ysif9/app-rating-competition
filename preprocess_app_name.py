@@ -15,7 +15,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 # python -m spacy download en_core_web_sm # Run this in your terminal if not done
 
-def preprocess_app_name_optimized(name_series):
+def preprocess_app_name(name_series):
     """
     Given a pandas Series of raw app names, returns a fitted sklearn Pipeline
     that transforms names into TF-IDF feature vectors.
@@ -35,27 +35,14 @@ def preprocess_app_name_optimized(name_series):
         nltk_stopwords = set(stopwords.words('english'))
 
     custom_app_stopwords = {
-        'app', 'apps', 'free', 'pro', 'lite', 'new', 'hd', 'plus', 'mobile', 'android',
-        'editor', 'maker', 'game', 'games', 'theme', 'themes', 'launcher', 'keyboard',
-        'wallpaper', 'wallpapers', 'live', 'photo', 'photos', 'video', 'videos', 'music',
-        'downloader', 'scanner', 'manager', 'creator', 'player', 'browser', 'calculator',
-        'calendar', 'weather', 'chat', 'call', 'calls', 'text', 'sms', 'online', 'offline',
-        'guide', 'viewer', 'reader', 'best', 'top', 'tools', 'official', 'beta', 'corp',
-        'inc', 'llc', 'ltd', 'com', 'studio', 'master', 'edition', 'for', 'and', 'with',
-        'the', 'a', 'an', 'my', 'you', 'your', 'all', 'get', 'to', 'by', 'of', 'in', 'on',
-        'it', 'is', 'at', 'me', 'co', 'corp', 'llp', 'ft', 'dj', 'ai', 'ar', 'vr', 'tv',
-        'go', 'share', 'learn', 'fast', 'easy', 'simple', 'smart', 'ultimate', 'dark',
-        'pink', 'gold', 'red', 'blue', 'green', 'white', 'black', 'effect', 'effects',
-        'background', 'backgrounds', 'cool', 'cute', 'emoji', 'gifs', 'selfie', 'camera',
-        'real', 'data', 'os', 'test', 'gps', 'vpn', 'tv', 'food', 'recipes', 'diet', 'health',
-        'fitness', 'workout', 'dating', 'love', 'single', 'singles', 'social', 'network',
-        'shopping', 'shop', 'deals', 'coupons', 'delivery', 'services', 'news', 'jobs',
-        'book', 'books', 'world', 'local', 'diy', 'tips', 'stories', 'widget', 'alert',
-        'alerts', 'tracker', 'utility', 'status', 'remote', 'control', 'cleaner', 'booster',
-        'lock', 'private', 'secure', 'security', 'speed', 'web', 'wifi', 'blocker',
-        'number', 'v', 'x', 'z', 'c', 'e', 'k', 'r', 's', 't', 'w', 'b', 'd', 'f', 'g', 'h',
-        'j', 'l', 'm', 'n', 'p', 'q', 'u', 'y',
-        'promo', 'buy', 'sell', 'show', 'full'
+        'app', 'apps',
+        'inc', 'llc', 'ltd', 'corp', 'corporation', 'co',
+        'android', 'mobile',
+        'version', 'edition',
+        'my',
+        'get', 'your',
+        'free', 'pro',
+        'llp', 'ft'
     }
 
     combined_stopwords = nltk_stopwords.union(custom_app_stopwords)
@@ -63,9 +50,9 @@ def preprocess_app_name_optimized(name_series):
 
     def _clean_text(text):
         text = str(text)
-        text = text.lower()
         text = emoji.demojize(text, delimiters=(" emoji_", "_emoji "))
         text = unidecode(text)
+        text = text.lower()
         text = re.sub(r'[™®©]', '', text)
         text = re.sub(r'&', ' and ', text)
         text = re.sub(r'\+', ' plus ', text)
