@@ -3,6 +3,7 @@ import emoji # pip install emoji
 import spacy # pip install spacy; python -m spacy download en_core_web_sm
 import nltk   # pip install nltk
 from nltk.corpus import stopwords
+from sklearn.preprocessing import FunctionTransformer
 from unidecode import unidecode # pip install unidecode
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -15,7 +16,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 # python -m spacy download en_core_web_sm # Run this in your terminal if not done
 
-def preprocess_app_name(name_series):
+def preprocess_app_name():
     """
     Given a pandas Series of raw app names, returns a fitted sklearn Pipeline
     that transforms names into TF-IDF feature vectors.
@@ -23,7 +24,9 @@ def preprocess_app_name(name_series):
     """
 
     try:
-        nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])
+        nlp = spacy.load("en_core_web_sm", disable=["parser", "ner", "tok2vec", "tagger"])
+        # make the underlying Thinc vector array writeable
+        # nlp.vocab.vectors.data = nlp.vocab.vectors.data.copy()
     except OSError:
         print("Spacy 'en_core_web_sm' model not found. Please run: \npython -m spacy download en_core_web_sm")
         raise
@@ -84,16 +87,29 @@ def preprocess_app_name(name_series):
         return lemmas
 
     # Build and fit the pipeline with TF-IDF vectorizer
-    pipeline = Pipeline([
+    # pipeline = Pipeline([
+    #     ("tfidf", TfidfVectorizer(
+    #         analyzer=_custom_spacy_analyzer,
+    #         lowercase=False,          # Already handled in _clean_text and analyzer
+    #         token_pattern=None,       # Analyzer handles tokenization
+    #         ngram_range=(1, 2),       # Unigrams and bigrams, very useful for app names
+    #         max_features=5000,        # Limits vocabulary size, tune as needed
+    #         min_df=1
+    #     ))
+    # ])
+    # return pipeline
+
+    return Pipeline([
+        # turn the (n_samples,1) DataFrame into a 1D array/Series
+        ("extract_str", FunctionTransformer(lambda X: X.values.ravel(), validate=False)),
+
         ("tfidf", TfidfVectorizer(
-            analyzer=_custom_spacy_analyzer,
-            lowercase=False,          # Already handled in _clean_text and analyzer
-            token_pattern=None,       # Analyzer handles tokenization
-            ngram_range=(1, 2),       # Unigrams and bigrams, very useful for app names
-            max_features=5000,        # Limits vocabulary size, tune as needed
-            min_df=2
+            analyzer="word",  # ← use the built-in word analyzer
+            tokenizer=_custom_spacy_analyzer,
+            lowercase=False,
+            token_pattern=None,
+            ngram_range=(1, 2),
+            max_features=5000,
+            min_df=1
         ))
     ])
-
-    pipeline.fit(name_series.astype(str).fillna(""))
-    return pipeline

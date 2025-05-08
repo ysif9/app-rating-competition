@@ -33,6 +33,31 @@ def parse_number(value):
         return int(value)
     return np.nan
 
+def parse_size_array(X):
+    # coerce whatever you got (DataFrame or array-like) into a NumPy array
+    flat = np.asarray(X).ravel()
+
+    out = []
+    for x in flat:
+        if pd.isna(x) or "varies" in str(x).lower():
+            out.append(np.nan)
+            continue
+
+        s = str(x).replace(",", "").replace("+", "").strip()
+        m = re.match(r"([\d\.]+)([MK]?)$", s, re.I)
+        if not m:
+            out.append(np.nan)
+            continue
+
+        num, unit = m.groups()
+        val = float(num)
+        if unit.upper() == "M":
+            val *= 1024  # convert MB → KB
+        # K or blank stays as KB
+        out.append(val)
+
+    return np.array(out).reshape(-1, 1)
+
 def group_reviews_count(val):
     very_low = ["1+", "5+", "10+", "50+", "100+"]
     low_mid = ["500+", "1,000+", "5,000+", "10,000+", "50,000+"]

@@ -1,41 +1,32 @@
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import FeatureUnion, make_pipeline
-from sklearn.preprocessing import PowerTransformer, FunctionTransformer, OrdinalEncoder, OneHotEncoder
-from sklearn.experimental import enable_iterative_imputer
-from sklearn.impute import IterativeImputer
-from utils import *
 import holidays
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import FeatureUnion, make_pipeline
+from sklearn.preprocessing import PowerTransformer, FunctionTransformer, OrdinalEncoder, OneHotEncoder, StandardScaler
 
+from utils import *
 
 us_holidays = holidays.US(years=range(2010, 2019))
 
-def box_cox_pipeline():
-    return make_pipeline(
-        PowerTransformer(method="box-cox", standardize=True))
+'''
+# ------------- Finalized Preprocessing -----------------
+'''
+
+
+def app_name_pipeline():
+    pass
 
 
 def category_pipeline():
     return make_pipeline(
-        OneHotEncoder(handle_unknown="ignore")
+        OneHotEncoder(handle_unknown="ignore", sparse_output=True)
     )
 
 
-
-def downloads_pipeline():
+def size_pipeline():
     return make_pipeline(
-        FunctionTransformer(lambda X: X.iloc[:, 0].map(parse_number).to_frame(), ),
-        IterativeImputer(
-            missing_values=np.nan,
-            add_indicator=True,
-            random_state=42,
-        ),
-        log_pipeline(),
-    )
-
-
-def ordinal_category_pipeline():
-    return make_pipeline(
-        OrdinalEncoder()
+        FunctionTransformer(parse_size_array, validate=False),
+        SimpleImputer(strategy="median"),
+        StandardScaler(),  # optional
     )
 
 
@@ -46,11 +37,49 @@ def reviews_numerical_pipeline():
     )
 
 
+def installs_pipeline():
+    return make_pipeline(
+        FunctionTransformer(lambda X: X.iloc[:, 0].map(parse_number).to_frame(), ),
+        log_pipeline()
+    )
+
+
+def drop_na(X):
+    return X.dropna()
+
+def type_pipeline():
+    return make_pipeline(
+        OrdinalEncoder(),
+        SimpleImputer(strategy="most_frequent")
+    )
+
+
+# ------------------------------
+def box_cox_pipeline():
+    return make_pipeline(
+        PowerTransformer(method="box-cox", standardize=True))
+
+
+def downloads_pipeline():
+    return make_pipeline(
+        FunctionTransformer(lambda X: X.iloc[:, 0].map(parse_number).to_frame(), ),
+        SimpleImputer(strategy="constant", fill_value=0, add_indicator=True),
+        log_pipeline(),
+    )
+
+
+def ordinal_category_pipeline():
+    return make_pipeline(
+        OrdinalEncoder()
+    )
+
+
 def review_group_pipeline():
     return make_pipeline(
         FunctionTransformer(lambda X: X.iloc[:, 0]
-                            .map(group_reviews_count)  # apply per value
-                            .to_frame(), ),
+                            .map(group_reviews_count)
+                            .to_frame(),
+                            validate=False),
         category_pipeline()
     )
 
@@ -79,44 +108,40 @@ def age_rating_pipeline():
 
 def year_group_pipeline():
     return make_pipeline(
-        FunctionTransformer(lambda X: pd.DataFrame(X, columns=["release_date"])["release_date"]
-                          .dt.year
-                          .map(group_years)
-                          .to_frame(name="year_group"),),
+        FunctionTransformer(lambda X: pd.DataFrame(X, columns=["last_updated"])["last_updated"]
+                            .dt.year
+                            .map(group_years)
+                            .to_frame(name="year_group"), ),
         category_pipeline()
     )
 
 
 def holiday_group_pipeline():
     return make_pipeline(
-        # Step 1: Map dates to holiday names
-        FunctionTransformer(lambda df: df['release_date']
+        FunctionTransformer(lambda df: df['last_updated']
                             .map(us_holidays)
                             .fillna('Not Holiday')
-                            .to_frame(name="holiday_name")),
-
-        # Step 2: Group the holidays into rating categories
-        FunctionTransformer(group_holidays),
-
-        # Step 3: One-hot encode the resulting groups
-        OneHotEncoder(sparse_output=False)
+                            .to_frame(name="holiday_name"),
+                            validate=False),
+        FunctionTransformer(group_holidays, validate=False),
+        OneHotEncoder(handle_unknown="ignore", sparse_output=True)  # consistent format
     )
 
 
 def release_date_pipeline():
     return make_pipeline(
-        FunctionTransformer(lambda df: df.assign(release_date=pd.to_datetime(df["release_date"]))),
+        FunctionTransformer(lambda df: df.assign(last_updated=pd.to_datetime(df["last_updated"]))),
         FeatureUnion([
-            ("year", FunctionTransformer(lambda df: df["release_date"].dt.year.to_frame())),
+            ("year", FunctionTransformer(lambda df: df["last_updated"].dt.year.to_frame())),
             ("year_group", year_group_pipeline()),
             ("holiday_group", holiday_group_pipeline()),
             ("is_holiday", FunctionTransformer(
                 lambda df: pd.DataFrame({
-                    "is_holiday": df['release_date'].dt.date.isin(us_holidays)
+                    "is_holiday": df['last_updated'].dt.date.isin(us_holidays)
                 })
             )),
 
-            ("weekday", FunctionTransformer(lambda df: df["release_date"].dt.weekday.to_frame(name="weekday"))),
+            ("weekday", FunctionTransformer(lambda df: df["last_updated"].dt.weekday.to_frame(name="weekday"))),
         ])
     )
 
@@ -130,4 +155,3 @@ def os_version_pipeline():
 
 def log_pipeline():
     return make_pipeline(FunctionTransformer(np.log1p))
-
