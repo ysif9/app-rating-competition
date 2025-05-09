@@ -8,6 +8,7 @@ dependencies = [
     "cleanlab[datalab]>=2.7.1",
     "emoji>=2.14.1",
     "holidays>=0.70",
+    "ipywidgets>=8.1.7",
     "kaggle>=1.7.4.2",
     "lightgbm>=4.6.0",
     "matplotlib>=3.10.1",

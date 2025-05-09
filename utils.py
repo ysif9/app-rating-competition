@@ -144,3 +144,22 @@ def is_wear_os(cleaned_value):
 def is_version_range(cleaned_value):
     return '-' in cleaned_value
 
+def outlier_thresholds(dataframe, variable):
+    quartile1 = dataframe[variable].quantile(0.10)
+    quartile3 = dataframe[variable].quantile(0.90)
+    interquantile_range = quartile3 - quartile1
+    up_limit = quartile3 + 1.5 * interquantile_range
+    low_limit = quartile1 - 1.5 * interquantile_range
+    return low_limit, up_limit
+
+def has_outliers(dataframe, variable):
+    low_limit, up_limit = outlier_thresholds(dataframe, variable)
+    if dataframe[(dataframe[variable] < low_limit) | (dataframe[variable] > up_limit)].any(axis=None):
+        print(variable, "yes")
+    print(variable, "no")
+
+def replace_with_thresholds(df, numeric_columns):
+    for variable in numeric_columns:
+        low_limit, up_limit = outlier_thresholds(df, variable)
+        df.loc[(df[variable] < low_limit), variable] = low_limit
+        df.loc[(df[variable] > up_limit), variable] = up_limit
