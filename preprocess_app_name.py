@@ -44,7 +44,7 @@ def preprocess_app_name():
         'version', 'edition',
         'my',
         'get', 'your',
-        'free', 'pro',
+        'free',
         'llp', 'ft'
     }
 
